@@ -94,8 +94,8 @@ def register():
     
     except sqlite3.IntegrityError:
         return jsonify({'message': '이미 존재하는 사용자 이름입니다'}), 409
-    except Exception as e:
-        return jsonify({'message': f'오류가 발생했습니다: {str(e)}'}), 500
+    except Exception:
+        return jsonify({'message': '오류가 발생했습니다'}), 500
 
 
 @app.route('/api/auth/login', methods=['POST'])
@@ -155,8 +155,8 @@ def login():
             }
         }), 200
     
-    except Exception as e:
-        return jsonify({'message': f'오류가 발생했습니다: {str(e)}'}), 500
+    except Exception:
+        return jsonify({'message': '오류가 발생했습니다'}), 500
 
 
 @app.route('/api/auth/logout', methods=['POST'])
@@ -182,8 +182,8 @@ def logout(current_user):
         
         return jsonify({'message': '로그아웃되었습니다'}), 200
     
-    except Exception as e:
-        return jsonify({'message': f'오류가 발생했습니다: {str(e)}'}), 500
+    except Exception:
+        return jsonify({'message': '오류가 발생했습니다'}), 500
 
 
 @app.route('/api/auth/verify', methods=['GET'])
@@ -216,8 +216,8 @@ def verify_token(current_user):
             }
         }), 200
     
-    except Exception as e:
-        return jsonify({'message': f'오류가 발생했습니다: {str(e)}'}), 500
+    except Exception:
+        return jsonify({'message': '오류가 발생했습니다'}), 500
 
 
 @app.route('/api/auth/me', methods=['GET'])
@@ -284,4 +284,6 @@ def health_check():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # 개발 환경에서만 debug=True 사용
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode, host='0.0.0.0', port=5000)
