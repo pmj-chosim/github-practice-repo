@@ -20,6 +20,19 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# 헬퍼 함수
+def extract_token_from_header():
+    """Authorization 헤더에서 토큰 추출"""
+    if 'Authorization' not in request.headers:
+        return None
+    
+    auth_header = request.headers['Authorization']
+    try:
+        return auth_header.split(' ')[1]  # "Bearer <token>" 형식
+    except IndexError:
+        return None
+
+
 # 데이터베이스 초기화
 def init_db():
     """사용자 테이블 초기화"""
@@ -159,8 +172,10 @@ def logout(current_user):
         로그아웃 성공 메시지
     """
     try:
-        auth_header = request.headers['Authorization']
-        token = auth_header.split(' ')[1]
+        token = extract_token_from_header()
+        
+        if not token:
+            return jsonify({'message': '토큰을 찾을 수 없습니다'}), 401
         
         # 세션 무효화
         invalidate_session(token)
@@ -184,8 +199,10 @@ def verify_token(current_user):
         토큰 유효성 및 사용자 정보
     """
     try:
-        auth_header = request.headers['Authorization']
-        token = auth_header.split(' ')[1]
+        token = extract_token_from_header()
+        
+        if not token:
+            return jsonify({'message': '토큰을 찾을 수 없습니다'}), 401
         
         # 블랙리스트 확인
         if is_token_blacklisted(token):
@@ -237,14 +254,21 @@ def get_sessions(current_user):
     """
     sessions = get_user_sessions(current_user['user_id'])
     
-    # 토큰은 마스킹 처리
-    masked_sessions = [
-        {
-            'created_at': session['created_at'].isoformat(),
-            'expiration': session['expiration'].isoformat()
-        }
-        for session in sessions
-    ]
+    # 토큰은 마스킹 처리하고 타임스탬프를 안전하게 처리
+    masked_sessions = []
+    for session in sessions:
+        session_info = {}
+        if hasattr(session.get('created_at'), 'isoformat'):
+            session_info['created_at'] = session['created_at'].isoformat()
+        else:
+            session_info['created_at'] = str(session.get('created_at', 'N/A'))
+        
+        if hasattr(session.get('expiration'), 'isoformat'):
+            session_info['expiration'] = session['expiration'].isoformat()
+        else:
+            session_info['expiration'] = str(session.get('expiration', 'N/A'))
+        
+        masked_sessions.append(session_info)
     
     return jsonify({
         'sessions': masked_sessions,
