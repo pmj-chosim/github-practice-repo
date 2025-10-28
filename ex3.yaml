@@ -1,0 +1,27 @@
+import sqlite3
+
+# 사용자 입력 시뮬레이션을 위한 더미 함수
+def get_request_data(key):
+    # 실제 Flask 앱에서는 request.args.get(key)와 유사
+    if key == 'username':
+        return "test_user' OR 1=1 --"
+    return ""
+
+def authenticate_user():
+    db = sqlite3.connect('example.db')
+    cursor = db.cursor()
+    
+    # **취약점:** 웹 요청으로부터 받은 입력(username)을 직접 SQL 쿼리에 삽입
+    username = get_request_data('username')
+    
+    # 🚨 CodeQL이 명확히 인식할 수 있는 위험한 문자열 연결 방식
+    query = "SELECT role FROM users WHERE username = '" + username + "' AND active = 1"
+    
+    print(f"Executing query: {query}")
+    cursor.execute(query)
+    data = cursor.fetchone()
+    db.close()
+    
+    return data
+
+authenticate_user()
